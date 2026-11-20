@@ -1,0 +1,123 @@
+<mujoco model="manipulador_3dof_sg90">
+    <!--
+        Modelo MJCF de un brazo robótico académico de 3 GDL (RRR antropomórfico)
+        inspirado en una estructura ligera accionada por 3 microservos tipo SG90 (9 g).
+
+        Sistema de unidades: Sistema Internacional (metros, kilogramos, radianes)
+        Convención de ángulos en el archivo XML: grados (degree) para facilitar lectura.
+
+        Parámetros geométricos principales:
+        - Base fija: pedestal cilíndrico de radio 0.045 m y altura 0.040 m.
+        - Articulación 1 (joint_base_yaw): giro en Z en z = 0.060 m, rango [-90°, +90°].
+        - Articulación 2 (joint_shoulder_pitch): giro en Y en z = 0.060 m, rango [-90°, +90°].
+        - Eslabón 1 (hombro -> codo): longitud L1 = 0.100 m (10 cm) a lo largo del eje X local.
+        - Articulación 3 (joint_elbow_pitch): giro en Y al final de L1, rango [-90°, +90°].
+        - Eslabón 2 (codo -> muñeca/punta): longitud L2 = 0.080 m (8 cm) a lo largo del eje X local.
+        - Efector final (site_ee): situado a 0.020 m del extremo de L2 (distancia codo -> TCP = 0.100 m).
+    -->
+
+    <compiler angle="degree" coordinate="local" inertiafromgeom="true" autolimits="true"/>
+
+    <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0.2 0.2 0.2"/>
+        <rgba haze="0.15 0.25 0.35 1" joint="0.22 0.74 0.97 1"/>
+        <global azimuth="135" elevation="-25"/>
+        <scale jointlength="1.65" jointwidth="0.045" framelength="0.85" framewidth="0.065"/>
+    </visual>
+
+    <default>
+        <joint armature="0.002" damping="0.08" limited="true"/>
+        <geom condim="3" contype="0" conaffinity="0" friction="0.8 0.005 0.0001" solref="0.02 1"/>
+        <position kp="6.0" kv="0.4" ctrlrange="-1.5708 1.5708" forcerange="-1.8 1.8"/>
+    </default>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+                 markrgb="0.8 0.8 0.8" width="300" height="300"/>
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.1"/>
+
+        <material name="mat_base" rgba="0.22 0.24 0.28 1" specular="0.3" shininess="0.3"/>
+        <material name="mat_servo" rgba="0.12 0.38 0.78 0.95" specular="0.5" shininess="0.5"/>
+        <material name="mat_turret" rgba="0.85 0.85 0.88 1" specular="0.3" shininess="0.3"/>
+        <material name="mat_link1" rgba="0.92 0.52 0.15 1" specular="0.4" shininess="0.4"/>
+        <material name="mat_link2" rgba="0.20 0.68 0.38 1" specular="0.4" shininess="0.4"/>
+        <material name="mat_ee" rgba="0.90 0.18 0.18 1" specular="0.6" shininess="0.6"/>
+    </asset>
+
+    <worldbody>
+        <light pos="0.3 -0.3 0.8" dir="-0.3 0.3 -0.8" directional="true" castshadow="true"/>
+        <geom name="floor" size="0.5 0.5 0.05" type="plane" material="groundplane" contype="1" conaffinity="1"/>
+
+        <!-- Marcador visual transparente para mostrar la posición objetivo (X, Y, Z) en el visor 3D -->
+        <body name="target_marker" mocap="true" pos="0.1673 0.0000 0.1566">
+            <geom name="geom_target_marker" type="sphere" size="0.010" rgba="0.1 0.95 0.3 0.45" contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- ==================== BASE FIJA ==================== -->
+        <body name="base_link" pos="0 0 0">
+            <!-- Placa / pedestal de la base (radio 45 mm, altura 40 mm) -->
+            <geom name="geom_base_plate" type="cylinder" fromto="0 0 0 0 0 0.040" size="0.045" material="mat_base" mass="0.150"/>
+            <!-- Carcasa del servo 1 (SG90 de giro de base) -->
+            <geom name="geom_servo1" type="box" pos="0 0 0.045" size="0.0115 0.006 0.011" material="mat_servo" mass="0.009"/>
+            <site name="site_base_origin" pos="0 0 0" size="0.004" rgba="1 1 1 1"/>
+
+            <!-- ==================== ESLABÓN 1: TORRETA / HOMBRO (GDL 1 - Yaw) ==================== -->
+            <body name="turret_link" pos="0 0 0.060">
+                <joint name="joint_base_yaw" type="hinge" axis="0 0 1" range="-90 90"/>
+                <!-- Soporte giratorio de la torreta -->
+                <geom name="geom_turret_disk" type="cylinder" fromto="0 0 -0.008 0 0 0.002" size="0.024" material="mat_turret" mass="0.012"/>
+                <geom name="geom_turret_bracket" type="box" pos="0 0 0.005" size="0.012 0.016 0.012" material="mat_turret" mass="0.008"/>
+                <!-- Carcasa del servo 2 (SG90 de hombro) -->
+                <geom name="geom_servo2" type="box" pos="0 0.008 0.002" size="0.0115 0.006 0.011" material="mat_servo" mass="0.009"/>
+
+                <!-- ==================== ESLABÓN 2: BRAZO / HUMERO (GDL 2 - Pitch) ==================== -->
+                <body name="upper_arm_link" pos="0 0 0">
+                    <!-- Eje Y negativo o positivo: usamos 0 -1 0 para que ángulos positivos eleven el brazo hacia +Z desde +X -->
+                    <joint name="joint_shoulder_pitch" type="hinge" axis="0 -1 0" range="-90 90"/>
+                    <site name="site_shoulder_frame" pos="0 0 0" size="0.004" rgba="0.92 0.52 0.15 1"/>
+                    <!-- Articulación visual del hombro -->
+                    <geom name="geom_shoulder_hub" type="cylinder" fromto="0 -0.014 0 0 0.014 0" size="0.010" material="mat_link1" mass="0.005"/>
+                    <!-- Cuerpo principal del brazo (L1 = 0.100 m = 10 cm) -->
+                    <geom name="geom_upper_arm" type="capsule" fromto="0 0 0 0.100 0 0" size="0.007" material="mat_link1" mass="0.018"/>
+                    <!-- Carcasa del servo 3 (SG90 de codo, situado cerca del extremo de L1) -->
+                    <geom name="geom_servo3" type="box" pos="0.095 0.008 0" size="0.0115 0.006 0.011" material="mat_servo" mass="0.009"/>
+
+                    <!-- ==================== ESLABÓN 3: ANTEBRAZO (GDL 3 - Pitch) ==================== -->
+                    <body name="forearm_link" pos="0.100 0 0">
+                        <joint name="joint_elbow_pitch" type="hinge" axis="0 -1 0" range="-90 90"/>
+                        <!-- Articulación visual del codo -->
+                        <site name="site_elbow_frame" pos="0 0 0" size="0.004" rgba="0.20 0.68 0.38 1"/>
+                        <geom name="geom_elbow_hub" type="cylinder" fromto="0 -0.012 0 0 0.012 0" size="0.009" material="mat_link2" mass="0.004"/>
+                        <!-- Cuerpo principal del antebrazo (L2 = 0.080 m = 8 cm) -->
+                        <geom name="geom_forearm" type="capsule" fromto="0 0 0 0.080 0 0" size="0.006" material="mat_link2" mass="0.014"/>
+
+                        <!-- ==================== EFECTOR FINAL ==================== -->
+                        <!-- Brida de acople y puntero del efector final (longitud 2 cm -> punta en 0.100 m desde codo) -->
+                        <geom name="geom_ee_mount" type="cylinder" fromto="0.080 0 0 0.092 0 0" size="0.007" material="mat_turret" mass="0.003"/>
+                        <geom name="geom_ee_tip" type="sphere" pos="0.100 0 0" size="0.007" material="mat_ee" mass="0.002"/>
+                        <!-- Site identificable para lectura de posición y orientación del TCP (Tool Center Point) -->
+                        <site name="site_end_effector" pos="0.100 0 0" size="0.008" rgba="1 0.1 0.1 1"/>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <!-- ==================== ACTUADORES (SERVOS DE POSICIÓN) ==================== -->
+    <actuator>
+        <position name="servo_base_yaw" joint="joint_base_yaw"/>
+        <position name="servo_shoulder_pitch" joint="joint_shoulder_pitch"/>
+        <position name="servo_elbow_pitch" joint="joint_elbow_pitch"/>
+    </actuator>
+
+    <!-- ==================== KEYFRAMES (POSICIONES DE REFERENCIA) ==================== -->
+    <keyframe>
+        <!-- Key 0 - Posición Home (postura robótica con codo): q = [0°, +45°, -30°] = [0, 0.785398, -0.523599] rad -->
+        <key name="home" qpos="0 0.785398 -0.523599" ctrl="0 0.785398 -0.523599" mpos="0.167303 0 0.156603"/>
+        <!-- Key 1 - Posición Origen (cero matemático DH): q = [0°, 0°, 0°] rad -->
+        <key name="origen" qpos="0 0 0" ctrl="0 0 0" mpos="0.200 0 0.060"/>
+    </keyframe>
+</mujoco>
