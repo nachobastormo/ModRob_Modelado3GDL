@@ -8,18 +8,24 @@ Proyecto de la asignatura **Modelado y Control de Robots (UPV)** que implementa 
 
 Requisitos previos: tener instalado **Python 3.10 o superior** en Windows (o Linux/macOS).
 
-### Paso 1. Clonar o descargar el repositorio
-Abra una terminal (**PowerShell** o **CMD**) y ejecute:
+### Paso 1. Clonar el repositorio y entrar en la carpeta
+Abra una terminal (**PowerShell** o **CMD**), copie y ejecute cada comando pulse `Enter`:
+
 ```powershell
 git clone https://github.com/nachobastormo/ModRob_Modelado3GDL.git
+```
+```powershell
 cd ModRob_Modelado3GDL
 ```
 *(Si lo ha descargado como archivo `.zip` desde GitHub, descomprímalo y abra la terminal dentro de la carpeta).*
 
-### Paso 2. Crear el entorno virtual e instalar dependencias
-Ejecute estos dos comandos para crear un entorno limpio e instalar `mujoco`, `numpy` y `matplotlib`:
+### Paso 2. Crear el entorno virtual e instalar las librerías
+Ejecute primero este comando para crear el entorno virtual `.venv`:
 ```powershell
 python -m venv .venv
+```
+Y a continuación instale las dependencias (`mujoco`, `numpy` y `matplotlib`):
+```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
